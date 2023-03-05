@@ -2,25 +2,20 @@ package life;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import javax.swing.Timer;
 
 public class GameOfLife extends JFrame {
-
-    private WorldPanel worldPanel;
-    private JLabel generationLabel;
-    private JLabel aliveLabel;
-    private static final int N = 100;
-    private static final int SLEEP_MS = 100;
-    private WorldState worldState;
+    private final JLabel generationLabel;
+    private final JLabel aliveLabel;
+    private final WorldModel worldModel;
     private boolean pause;
     private boolean restarted;
+    private static final int N = 100;
+    private static final int SLEEP_MS = 100;
     private static final int BOARD_SIZE = 550;
     private static final int CONTROL_PANEL_SIZE = 200;
-    private Timer timer;
 
     public GameOfLife() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -35,59 +30,49 @@ public class GameOfLife extends JFrame {
         generationLabel.setName("GenerationLabel");
         aliveLabel = new JLabel("Alive: 0");
         aliveLabel.setName("AliveLabel");
-        ItemListener itemListener = new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent itemEvent) {
-                int state = itemEvent.getStateChange();
-
-                // if selected print selected in console
-                if (state == ItemEvent.SELECTED) {
-                    setPause(false);
-                    System.out.println("SELECTED: pause =" + pause);
-                }
-                else {
-                    setPause(true);
-                }
-            }
-        };
         JToggleButton playToggleButton = new JToggleButton("Play/Pause");
-        playToggleButton.addItemListener(itemListener);
+        playToggleButton.setSelected(true);
+        playToggleButton.addItemListener( itemEvent -> {
+            int state = itemEvent.getStateChange();
+
+            // if selected print selected in console
+            if (state == ItemEvent.SELECTED) {
+                setPause(false);
+            }
+            else {
+                setPause(true);
+            }
+        });
         playToggleButton.setName("PlayToggleButton");
         JButton resetButton = new JButton("Reset");
         resetButton.setName("ResetButton");
-        resetButton.addActionListener(e -> {
-            setRestarted(true);
-        });
+        resetButton.addActionListener(e -> setRestarted(true));
         controlPanel.add(playToggleButton);
         controlPanel.add(resetButton);
         controlPanel.add(generationLabel);
         controlPanel.add(aliveLabel);
         controlPanel.setPreferredSize(new Dimension(CONTROL_PANEL_SIZE, BOARD_SIZE));
         add(controlPanel);
-        worldPanel = new WorldPanel();
+        WorldPanel worldPanel = new WorldPanel();
         add(worldPanel);
 
         setTitle("Game of Life");
         pause = false;
-        worldState = new WorldState(N);
+        worldModel = new WorldModel(N);
 
-        timer = new Timer(SLEEP_MS, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                    if (isRestarted()) {
-                        worldState.setWorld(worldState.generateWorld());
-                        worldState.setGeneration(0);
-                        worldState.setAlive(0);
-                        setRestarted(false);
-                        repaint();
-                    }
-                    if (!isPause()) {
-                        worldState.setWorld(worldState.nextState());
-                        worldState.setAlive(worldState.countAlive());
-                        worldState.setGeneration(worldState.getGeneration()+1);
-                        repaint();
-                    }
+        Timer timer = new Timer(SLEEP_MS, actionEvent -> {
+            if (isRestarted()) {
+                worldModel.setWorld(worldModel.generateWorld());
+                worldModel.setGeneration(0);
+                worldModel.setAlive(0);
+                setRestarted(false);
             }
+            if (!isPause()) {
+                worldModel.setWorld(worldModel.nextState());
+                worldModel.setAlive(worldModel.countAlive());
+                worldModel.setGeneration(worldModel.getGeneration() + 1);
+            }
+            repaint();
         });
         timer.start();
         setVisible(true);
@@ -115,9 +100,9 @@ public class GameOfLife extends JFrame {
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            boolean[][] world = worldState.getWorld();
-            generationLabel.setText("Generation #" + Integer.toString(worldState.getGeneration()));
-            aliveLabel.setText("Alive: " + Integer.toString(worldState.getAlive()));
+            boolean[][] world = worldModel.getWorld();
+            generationLabel.setText("Generation #" + worldModel.getGeneration());
+            aliveLabel.setText("Alive: " + worldModel.getAlive());
             for (int i = 0; i < world.length; i++) {
                 for (int j = 0; j < world[i].length; j++) {
                     g.drawRect(margin+i*blockSize, margin+j*blockSize, blockSize, blockSize);
